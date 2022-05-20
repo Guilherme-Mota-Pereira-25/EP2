@@ -5,7 +5,6 @@
 #include <random>
 #include <time.h>
 #include <stdio.h>
-#include <iostream>
 
 template <class Key, class Item>
 class Treap: public SymbolTable<Key,Item> {
@@ -23,10 +22,14 @@ class Treap: public SymbolTable<Key,Item> {
         Node(N_Key nkey = N_Key{}, N_Item nitem = N_Item{}) {
             key = nkey; item = nitem;
             right = nullptr; left = nullptr; parent = nullptr; nqtt = 1;
-            srand(time(NULL)); priority = rand()%100 + 1;
+            std::random_device dev;
+            std::mt19937 rng(dev());
+            std::uniform_int_distribution<std::mt19937::result_type> dist6(1,100);
+            // srand(time(NULL));
+            priority = dist6(rng);
         }
         void genereteNewPriority() {
-            srand(time(NULL)); priority = rand()%100 + 1;
+            srand(time(NULL)); priority = rand()%10000 + 1;
         }
     };
 
@@ -169,22 +172,23 @@ Key Treap<Key,Item>::select(int s) {
 
 template <class Key, class Item>
 Key Treap<Key,Item>::r_select(Node<Key,Item>* r_root, int s) {
+    if (r_root == nullptr)
+        return Key{};
+    
     if (r_root->left != nullptr) {
-        if(r_root->left->nqtt == s)
+        if (s == r_root->left->nqtt)
             return r_root->key;
-        else if (r_root->left->nqtt > s)
-            return r_select(r_root->left,s);
-        else {
-            Node<Key,Item>* n_root = (r_root->right==nullptr?r_root->left:r_root->right);
-            return r_select(n_root, s-(r_root->left->nqtt+1));
-        }
-    } else if (r_root->left != nullptr) {
-        if(r_root->right->nqtt == s)
+        else if (s < r_root->left->nqtt)
+            return r_select(r_root->left, s);
+        else
+            return r_select(r_root->right, s-(r_root->left->nqtt+1));
+    } else if (r_root->right != nullptr) {
+        if (s == 0)
             return r_root->key;
         else
-            return r_select(r_root->right,s-1);
-    } else { // chave inexistente?
-        if(s == 0)
+            return r_select(r_root->right, s-1);
+    } else {
+        if (s == 0)
             return r_root->key;
         else
             return Key{};

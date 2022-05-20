@@ -27,7 +27,7 @@ int main() {
     cin >> structure;
 
     SymbolTable<string,int>* st = SymbolTableFactory<string,int>().createST(structure);
-    cout << st->show() << endl;
+    // cout << st->show() << endl;
     int n_words = 0;
     cin >> n_words;
     string words[n_words];
@@ -49,14 +49,13 @@ int main() {
                 if (iterator >= sizeof(words)/sizeof(words[0]))
                     break;
 
-                // PRECISA CORRIGIR: RAND()
-                st->add(words[iterator++],1);
-                // int _rank = st->rank(words[iterator]);
-                // string search_key = st->select(_rank);
-                // if (words[iterator] == search_key)
-                //     st->add(words[iterator++],st->value(search_key)+1);
-                // else
-                //     st->add(words[iterator++],1);
+                // st->add(words[iterator++],1);
+                int _rank = st->rank(words[iterator]);
+                string search_key = st->select(_rank);
+                if (words[iterator] == search_key)
+                    st->add(words[iterator++],st->value(search_key)+1);
+                else
+                    st->add(words[iterator++],1);
             }
             break;
         } case 2: {

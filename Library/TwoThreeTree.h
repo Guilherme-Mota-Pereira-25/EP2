@@ -8,15 +8,6 @@ class TwoThreeTree: public SymbolTable<Key,Item>{
 
     enum NodeType {LEAF,TWO,THREE};
 
-    // template<class N_Key, class N_Item>
-    // class subNode {
-    //     public:
-    //     N_Key key;
-    //     N_Item item;
-    //     subNode(N_Key nkey = N_Key{}, N_Item nitem = N_Item{}) {
-    //         key = nkey; item = nitem;
-    //     }
-    // }
     template<class N_Key, class N_Item>
     class Node {
     public:
@@ -130,31 +121,33 @@ TwoThreeTree<Key,Item>::Node<Key,Item>* TwoThreeTree<Key,Item>::r_add(Node<Key,I
                     if (aux == r_root->left) { // Não cresceu
                         r_root->left = aux; r_root->nqtt++;
                     } else { // Cresceu
-                        aux->nodeType = THREE;
-                        aux->add(r_root->f_key,r_root->f_item);
-                        aux->middle = aux->right; aux->right = r_root->right;
-                        r_root = aux;
+                        r_root->nodeType = THREE;
+                        r_root->add(aux->f_key, aux->f_item);
+                        r_root->left = aux->left; r_root->middle = aux->right;
+                        r_root->nqtt = 2 + r_root->left->nqtt + r_root->middle->nqtt + r_root->right->nqtt;
                     }
                 } else {// Inserção pela direita do 2-nó
                     Node<Key,Item>* aux = r_add(r_root->right,key,item);
-                    if (aux == r_root->right) // Não cresceu
-                        r_root->right = aux;
-                    else { // Cresceu
-                        aux->nodeType = THREE;
-                        aux->add(r_root->f_key,r_root->f_item);
-                        aux->middle = aux->left; aux->left = r_root->left;
-                        r_root = aux;
+                    if (aux == r_root->right) { // Não cresceu
+                        r_root->right = aux; r_root->nqtt++;
+                    } else { // Cresceu
+                        r_root->nodeType = THREE;
+                        r_root->add(aux->f_key, aux->f_item);
+                        r_root->right = aux->right; r_root->middle = aux->left;
+                        r_root->nqtt = 2 + r_root->left->nqtt + r_root->middle->nqtt + r_root->right->nqtt;
                     }
                 }
             } break;
             case THREE: {// Caso o nó visitado seja 3-nó
                 if (key < r_root->f_key) {
                     Node<Key,Item>* aux = r_add(r_root->left,key,item);
-                    if (aux == r_root->left)// Não cresceu
-                        r_root->left = aux;
-                    else {// Cresceu
+                    if (aux == r_root->left){// Não cresceu
+                        r_root->left = aux; r_root->nqtt++;
+                    } else {// Cresceu
                         Node<Key,Item>* n_root = new Node<Key,Item>(r_root->f_key,r_root->f_item);
                         n_root->nodeType = TWO;
+                        r_root->nqtt -= aux->nqtt;
+                        n_root->nqtt += aux->nqtt + r_root->nqtt;
                         n_root->left = aux; n_root->right = r_root;
                         r_root->f_key = r_root->s_key; r_root->f_item = r_root->s_item;
                         r_root->s_key = Key{}; r_root->s_item = Item{};
@@ -164,29 +157,36 @@ TwoThreeTree<Key,Item>::Node<Key,Item>* TwoThreeTree<Key,Item>::r_add(Node<Key,I
                     }
                 } else if (key < r_root->s_key) {
                     Node<Key,Item>* aux = r_add(r_root->middle,key,item);
-                    if (aux == r_root->middle)// Não cresceu
-                        r_root->middle = aux;
-                    else {// Cresceu
+                    if (aux == r_root->middle){// Não cresceu
+                        r_root->middle = aux; r_root->nqtt++;
+                    } else {// Cresceu
                         Node<Key,Item>* n_right = new Node<Key,Item>(r_root->s_key,r_root->s_item);
                         n_right->nodeType = TWO;
                         r_root->s_key = Key{}; r_root->s_item = Item{};
+                        n_right->right = r_root->right;
                         r_root->right = aux->left;
                         n_right->left = aux->right;
+                        n_right->nqtt += n_right->right->nqtt + n_right->left->nqtt;
+                        // r_root->nqtt -= n_right->right->nqtt - r_root->right->nqtt;
+                        r_root->nqtt = 1 + r_root->left->nqtt + r_root->right->nqtt;
                         aux->left = r_root; aux->right = n_right;
                         r_root->nodeType = TWO; r_root->middle = nullptr;
+                        aux->nqtt = 1 + aux->left->nqtt + aux->right->nqtt;
                         r_root = aux;
                     }
                 } else {
                     Node<Key,Item>* aux = r_add(r_root->right,key,item);
-                    if (aux == r_root->right)// Não cresceu
-                        r_root->right = aux;
-                    else {// Cresceu
+                    if (aux == r_root->right){// Não cresceu
+                        r_root->right = aux; r_root->nqtt++;
+                    } else {// Cresceu
                         Node<Key,Item>* n_root = new Node<Key,Item>(r_root->s_key,r_root->s_item);
                         n_root->nodeType = TWO;
+                        r_root->nqtt -= aux->nqtt;
                         r_root->s_key = Key{}; r_root->s_item = Item{};
+                        r_root->nodeType = TWO;
                         n_root->left = r_root; n_root->right = aux;
                         r_root->right = r_root->middle; r_root->middle = nullptr;
-                        r_root->nodeType = TWO;
+                        n_root->nqtt += n_root->left->nqtt + n_root->right->nqtt;
                         r_root = n_root;
                     }
                 }
@@ -261,39 +261,37 @@ Key TwoThreeTree<Key,Item>::select(int s) {
 template <class Key, class Item>
 Key TwoThreeTree<Key,Item>::r_select(Node<Key,Item>* r_root, int s) {
 
-    if (r_root->left != nullptr)  {
-        if (s == r_root->left->nqtt)
-            return r_root->f_key;
-        else if (s < r_root->left->nqtt)
-            return r_select(r_root->left,s);
-        else if (r_root->s_key != Key{}) {
-            s -= r_root->left->nqtt;
-            // Colocar 
-        } else {
-
-        }
+    switch (r_root->nodeType) {
+        case LEAF: {
+            if (s == 0) return r_root->f_key;
+            if (s == 1) return r_root->s_key;
+            return Key{};
+        } break;
+        case TWO: {
+            if (s < r_root->left->nqtt)
+                return r_select(r_root->left,s);
+            else if (s == r_root->left->nqtt)
+                return r_root->f_key;
+            else
+                return r_select(r_root->right, s-(r_root->left->nqtt+1));
+        } break;
+        case THREE: {
+            if (s < r_root->left->nqtt)
+                return r_select(r_root->left,s);
+            else if (s == r_root->left->nqtt)
+                return r_root->f_key;
+            else {
+                s -= r_root->left->nqtt+1;
+                if (s < r_root->middle->nqtt)
+                    return r_select(r_root->middle,s);
+                else if (s == r_root->middle->nqtt)
+                    return r_root->s_key;
+                else
+                    return r_select(r_root->right, s-(r_root->middle->nqtt+1));
+            }
+        } break;
     }
 
-    // if (r_root->left != nullptr) {
-    //     if(r_root->left->nqtt == s)
-    //         return r_root->key;
-    //     else if (r_root->left->nqtt > s)
-    //         return r_select(r_root->left,s);
-    //     else {
-    //         Node<Key,Item>* n_root = (r_root->right==nullptr?r_root->left:r_root->right);
-    //         return r_select(n_root, s-(r_root->left->nqtt+1));
-    //     }
-    // } else if (r_root->left != nullptr) {
-    //     if(r_root->right->nqtt == s)
-    //         return r_root->key;
-    //     else
-    //         return r_select(r_root->right,s-1);
-    // } else {
-    //     if(s == 0)
-    //         return r_root->key;
-    //     else
-    //         return Key{};
-    // }
     return Key{};
 }
 

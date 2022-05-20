@@ -117,22 +117,23 @@ Key BinarySearchTree<Key,Item>::select(int s) {
 
 template <class Key, class Item>
 Key BinarySearchTree<Key,Item>::r_select(Node<Key,Item>* r_root, int s) {
+    if (r_root == nullptr)
+        return Key{};
+    
     if (r_root->left != nullptr) {
-        if(r_root->left->nqtt == s)
+        if (s == r_root->left->nqtt)
             return r_root->key;
-        else if (r_root->left->nqtt > s)
-            return r_select(r_root->left,s);
-        else {
-            Node<Key,Item>* n_root = (r_root->right==nullptr?r_root->left:r_root->right);
-            return r_select(n_root, s-(r_root->left->nqtt+1));
-        }
-    } else if (r_root->left != nullptr) {
-        if(r_root->right->nqtt == s)
+        else if (s < r_root->left->nqtt)
+            return r_select(r_root->left, s);
+        else
+            return r_select(r_root->right, s-(r_root->left->nqtt+1));
+    } else if (r_root->right != nullptr) {
+        if (s == 0)
             return r_root->key;
         else
-            return r_select(r_root->right,s-1);
+            return r_select(r_root->right, s-1);
     } else {
-        if(s == 0)
+        if (s == 0)
             return r_root->key;
         else
             return Key{};
